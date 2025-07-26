@@ -31,4 +31,7 @@ ret, camera_matrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(obj_points, c
 print(camera_matrix)
 print(distCoeffs)
         
+
+
+
 plt.show()
