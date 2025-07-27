@@ -49,7 +49,31 @@ class ARTagDetector_Node(Node):
                 P_c_m__m = P_c_m__m[:3]
                 pose_msg = Pose()
                 pose_msg.position = Point(x= P_c_m__m[0], y = P_c_m__m[1], z = P_c_m__m[2] )
-                pose_msg.orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0)
+                tr = R_m2c.T[0,0] + R_m2c.T[1,1] + R_m2c.T[2,2]
+                if tr > 0:
+                    w = 0.5 * np.sqrt(1+tr)
+                    x = (R_m2c.T[2,1] + R_m2c.T[1,2])/(4*w)
+                    y = (R_m2c.T[0,2] - R_m2c.T[2,0])/(4*w)
+                    z = (R_m2c.T[1,0] - R_m2c.T[0,1])/(4*w)
+                elif tr < 0 and R_m2c.T[0,0] >= R_m2c.T[1,1] and R_m2c.T[0,0] >= R_m2c.T[2,2]:
+                    S = 2* np.sqrt(1 + R_m2c.T[0,0] - R_m2c.T[1,1] - R_m2c.T[2,2])
+                    w = (R_m2c.T[0,2]- R_m2c.T[2,0])/S
+                    x = 0.25 * S
+                    y = (R_m2c.T[0,1]+ R_m2c.T[1,0])/S
+                    z = (R_m2c.T[0,2] + R_m2c.T[2,0])/S
+                elif tr < 0 and R_m2c.T[1,1] >= R_m2c.T[0,0] and R_m2c.T[1,1]>= R_m2c.T[2,2]:
+                    S = 2 * np.sqrt(1 + R_m2c.T[1,1] - R_m2c.T[0,0] - R_m2c.T[2,2])
+                    w = (R_m2c.T[0,2]-R_m2c.T[2,0])/S
+                    x = (R_m2c.T[0,1]+ R_m2c.T[1,0])/S
+                    y = 0.25 * S
+                    z = (R_m2c.T[1,2]+ R_m2c.T[2,1])/S
+                elif tr < 0 and R_m2c.T[2,2] >= R_m2c.T[1,1] and R_m2c.T[2,2] >= R_m2c.T[0,0]:
+                    S = 2 * np.sqrt(1+ R_m2c.T[2,2] - R_m2c.T[0,0] - R_m2c.T[1,1])
+                    w = (R_m2c.T[1,0] - R_m2c.T[0,1])/S
+                    x = (R_m2c.T[0,2] + R_m2c.T[2,0])/S
+                    y = (R_m2c.T[1,2] + R_m2c.T[2,1])/S
+                    z = 0.25 * S
+                pose_msg.orientation = Quaternion(x = x, y = y, z = z, w = w)
                 self.pose_pub.publish(pose_msg)
                 self.get_logger().info(f'Pose relative to ID {id}: {pose_msg}')
                 self.tag_pub.publish(img)
