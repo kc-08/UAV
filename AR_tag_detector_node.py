@@ -14,25 +14,26 @@ class ARTagDetector_Node(Node):
 
         self.length = 0.266
         self.object_points = np.array([[-self.length/2, self.length/2, 0], [self.length/2, self.length/2, 0], [self.length/2, -self.length/2, 0], [-self.length/2, -self.length/2, 0]])
-        f_x, f_y = 1182.644, 1182.828
-        c_x, c_y = 251.1132, 324.621
-        # self.dist_coeff = np.zeros((5,1))
-        self.dist_coeff = np.array([[-0.0476501462, 1.46445018, 0.0119584430 , -0.00576903121, -6.08971241]])
+        f_x, f_y = 957.65476056, 956.62697656
+        c_x, c_y = 216.55218287, 233.76171873
+        self.dist_coeff = np.array([[-1.53729907e-02,  5.80995520e-01,  2.07463747e-04, -1.26423353e-03, -1.78962400e+00]])
         
         self.camera_matrix = np.array([[f_x, 0.0, c_x], [0.0, f_y, c_y], [0.0, 0.0, 1.0]])
 
-        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100)
-        parameters = cv2.aruco.DetectorParameters()
-        self.detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100)
+        # parameters = cv2.aruco.DetectorParameters()
+        self.parameters = cv2.aruco.DetectorParameters_create()
+        # self.detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
 
     def image_callback(self, msg):
-        img = self.bridge.imgmsg_to_cv2(img, 'bgr8')
+        img = msg.data
         detector = self.detector
         camera_matrix = self.camera_matrix
         object_points = self.object_points
         dist_coeff = self.dist_coeff
         gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        corners, ids, _ = detector.detectMarkers(gray_img)
+        corners, ids, rejected = cv2.aruco.detectMarkers(gray_img, aruco_dict, parameters = parameters)
+        # corners, ids, _ = detector.detectMarkers(gray_img)
         if ids is not None:
             self.get_logger().info(f'{len(ids)} tags Detected')
             for id, cnr in zip(ids, corners):
@@ -47,7 +48,31 @@ class ARTagDetector_Node(Node):
                 P_c_m__m = P_c_m__m[:3]
                 pose_msg = Pose()
                 pose_msg.position = Point(x= P_c_m__m[0], y = P_c_m__m[1], z = P_c_m__m[2] )
-                pose_msg.orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0)
+                tr = R_m2c.T[0,0] + R_m2c.T[1,1] + R_m2c.T[2,2]
+                if tr > 0:
+                    w = 0.5 * np.sqrt(1+tr)
+                    x = (R_m2c.T[2,1] + R_m2c.T[1,2])/(4*w)
+                    y = (R_m2c.T[0,2] - R_m2c.T[2,0])/(4*w)
+                    z = (R_m2c.T[1,0] - R_m2c.T[0,1])/(4*w)
+                elif tr < 0 and R_m2c.T[0,0] >= R_m2c.T[1,1] and R_m2c.T[0,0] >= R_m2c.T[2,2]:
+                    S = 2* np.sqrt(1 + R_m2c.T[0,0] - R_m2c.T[1,1] - R_m2c.T[2,2])
+                    w = (R_m2c.T[0,2]- R_m2c.T[2,0])/S
+                    x = 0.25 * S
+                    y = (R_m2c.T[0,1]+ R_m2c.T[1,0])/S
+                    z = (R_m2c.T[0,2] + R_m2c.T[2,0])/S
+                elif tr < 0 and R_m2c.T[1,1] >= R_m2c.T[0,0] and R_m2c.T[1,1]>= R_m2c.T[2,2]:
+                    S = 2 * np.sqrt(1 + R_m2c.T[1,1] - R_m2c.T[0,0] - R_m2c.T[2,2])
+                    w = (R_m2c.T[0,2]-R_m2c.T[2,0])/S
+                    x = (R_m2c.T[0,1]+ R_m2c.T[1,0])/S
+                    y = 0.25 * S
+                    z = (R_m2c.T[1,2]+ R_m2c.T[2,1])/S
+                elif tr < 0 and R_m2c.T[2,2] >= R_m2c.T[1,1] and R_m2c.T[2,2] >= R_m2c.T[0,0]:
+                    S = 2 * np.sqrt(1+ R_m2c.T[2,2] - R_m2c.T[0,0] - R_m2c.T[1,1])
+                    w = (R_m2c.T[1,0] - R_m2c.T[0,1])/S
+                    x = (R_m2c.T[0,2] + R_m2c.T[2,0])/S
+                    y = (R_m2c.T[1,2] + R_m2c.T[2,1])/S
+                    z = 0.25 * S
+                pose_msg.orientation = Quaternion(x = x, y = y, z = z, w = w)
                 self.pose_pub.publish(pose_msg)
                 self.get_logger().info(f'Pose relative to ID {id}: {pose_msg}')
                 self.tag_pub.publish(img)
