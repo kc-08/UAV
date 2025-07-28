@@ -26,7 +26,7 @@ class ARTagDetector_Node(Node):
         # self.detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
 
     def image_callback(self, msg):
-        img = self.bridge.imgmsg_to_cv2(img, 'bgr8')
+        img = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
         # detector = self.detector
         aruco_dict = self.aruco_dict 
         parameters = self.parameters
