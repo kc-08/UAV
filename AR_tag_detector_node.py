@@ -1,6 +1,6 @@
-import rcply
-from rcply.node import Node
-from camera_msgs.msg import Image
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose, Point, Quaternion
 import numpy as np
 import cv2
@@ -26,7 +26,7 @@ class ARTagDetector_Node(Node):
         self.detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
 
     def image_callback(self, msg):
-        img = msg.data
+        img = self.bridge.imgmsg_to_cv2(img, 'bgr8')
         detector = self.detector
         camera_matrix = self.camera_matrix
         object_points = self.object_points
@@ -56,10 +56,10 @@ class ARTagDetector_Node(Node):
             self.get_logger().info('No tags Detected')
 
 def main(args = None):
-    rcply.init()
+    rclpy.init()
     node = ARTagDetector_Node()
-    rcply.spin()
-    rcply.shutdown()
+    rclpy.spin()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
