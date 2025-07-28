@@ -14,9 +14,9 @@ class ARTagDetector_Node(Node):
 
         self.length = 0.266
         self.object_points = np.array([[-self.length/2, self.length/2, 0], [self.length/2, self.length/2, 0], [self.length/2, -self.length/2, 0], [-self.length/2, -self.length/2, 0]])
-        f_x, f_y = 1182.644, 1182.828
-        c_x, c_y = 251.1132, 324.621
-        self.dist_coeff = np.array([[-0.0476501462, 1.46445018, 0.0119584430 , -0.00576903121, -6.08971241]])
+        f_x, f_y = 957.65476056, 956.62697656
+        c_x, c_y = 216.55218287, 233.76171873
+        self.dist_coeff = np.array([[-1.53729907e-02,  5.80995520e-01,  2.07463747e-04, -1.26423353e-03, -1.78962400e+00]])
         
         self.camera_matrix = np.array([[f_x, 0.0, c_x], [0.0, f_y, c_y], [0.0, 0.0, 1.0]])
 
