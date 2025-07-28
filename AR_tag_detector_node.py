@@ -8,9 +8,9 @@ import cv2
 class ARTagDetector_Node(Node):
     def __init__(self):
         super().__init__('AR_Tag_detector')
-        self.image_sub = self.create_subscription(Image, '/camera/image_raw', self.image_callback, 10)
+        self.image_sub = self.create_subscription(Image, '/frontCamera/front_camera/image_raw', self.image_callback, 10)
         self.pose_pub = self.create_publisher(Pose, '/mavros/local_position/pose', 10)
-        self.tag_pub = self.create_publisher(Image, 'camera/detected_tag', 10)
+        self.tag_pub = self.create_publisher(Image, '/camera/detected_tag', 10)
 
         self.length = 0.266
         self.object_points = np.array([[-self.length/2, self.length/2, 0], [self.length/2, self.length/2, 0], [self.length/2, -self.length/2, 0], [-self.length/2, -self.length/2, 0]])
@@ -27,7 +27,7 @@ class ARTagDetector_Node(Node):
 
     def image_callback(self, msg):
         img = self.bridge.imgmsg_to_cv2(img, 'bgr8')
-        detector = self.detector
+        # detector = self.detector
         camera_matrix = self.camera_matrix
         object_points = self.object_points
         dist_coeff = self.dist_coeff
@@ -83,7 +83,7 @@ class ARTagDetector_Node(Node):
 def main(args = None):
     rclpy.init()
     node = ARTagDetector_Node()
-    rclpy.spin()
+    rclpy.spin(node)
     rclpy.shutdown()
 
 if __name__ == '__main__':
