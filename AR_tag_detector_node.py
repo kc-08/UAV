@@ -2,15 +2,17 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose, Point, Quaternion
+from cv_bridge import CvBridge
 import numpy as np
 import cv2
 
 class ARTagDetector_Node(Node):
     def __init__(self):
         super().__init__('AR_Tag_detector')
-        self.image_sub = self.create_subscription(Image, '/camera/image_raw', self.image_callback, 10)
+        self.image_sub = self.create_subscription(Image, '/frontCamera/front_camera/image_raw', self.image_callback, 10)
         self.pose_pub = self.create_publisher(Pose, '/mavros/local_position/pose', 10)
-        self.tag_pub = self.create_publisher(Image, 'camera/detected_tag', 10)
+        self.tag_pub = self.create_publisher(Image, '/camera/detected_tag', 10)
+        self.bridge = CvBridge()
 
         self.length = 0.266
         self.object_points = np.array([[-self.length/2, self.length/2, 0], [self.length/2, self.length/2, 0], [self.length/2, -self.length/2, 0], [-self.length/2, -self.length/2, 0]])
@@ -26,9 +28,9 @@ class ARTagDetector_Node(Node):
         # self.detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
 
     def image_callback(self, msg):
-        img = self.bridge.imgmsg_to_cv2(img, 'bgr8')
+        img = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
         # detector = self.detector
-        aruco_dict = self.aruco_dict
+        aruco_dict = self.aruco_dict 
         parameters = self.parameters
         camera_matrix = self.camera_matrix
         object_points = self.object_points
@@ -49,7 +51,7 @@ class ARTagDetector_Node(Node):
                 P_c_m__m = -1 * (R_c2m @ P_m_c__c)
                 P_c_m__m = P_c_m__m[:3]
                 pose_msg = Pose()
-                pose_msg.position = Point(x= P_c_m__m[0], y = P_c_m__m[1], z = P_c_m__m[2] )
+                pose_msg.position = Point(x= P_c_m__m[0][0], y = P_c_m__m[1][0], z = P_c_m__m[2][0] )
                 tr = R_m2c.T[0,0] + R_m2c.T[1,1] + R_m2c.T[2,2]
                 if tr > 0:
                     w = 0.5 * np.sqrt(1+tr)
@@ -74,10 +76,11 @@ class ARTagDetector_Node(Node):
                     x = (R_m2c.T[0,2] + R_m2c.T[2,0])/S
                     y = (R_m2c.T[1,2] + R_m2c.T[2,1])/S
                     z = 0.25 * S
-                pose_msg.orientation = Quaternion(x = x, y = y, z = z, w = w)
+                pose_msg.orientation = Quaternion(x = float(x), y = float(y), z = float(z), w = float(w))
                 self.pose_pub.publish(pose_msg)
                 self.get_logger().info(f'Pose relative to ID {id}: {pose_msg}')
-                self.tag_pub.publish(img)
+                detected_tag_msg = self.bridge.cv2_to_imgmsg(img, encoding='bgr8')
+                self.tag_pub.publish(detected_tag_msg)
 
         else:
             self.get_logger().info('No tags Detected')
@@ -85,7 +88,7 @@ class ARTagDetector_Node(Node):
 def main(args = None):
     rclpy.init()
     node = ARTagDetector_Node()
-    rclpy.spin()
+    rclpy.spin(node)
     rclpy.shutdown()
 
 if __name__ == '__main__':
