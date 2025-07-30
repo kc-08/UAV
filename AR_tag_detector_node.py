@@ -41,7 +41,7 @@ class ARTagDetector_Node(Node):
         if ids is not None:
             self.get_logger().info(f'{len(ids)} tags Detected')
             for id, cnr in zip(ids, corners):
-                cv2.aruco.drawDetectedMarkers(img, cnr, id)
+                cv2.aruco.drawDetectedMarkers(img, corners, ids)
                 _, rvec, tvec = cv2.solvePnP(object_points, cnr.reshape((4,2)), camera_matrix, dist_coeff)
                 P_m_c__c = np.hstack([tvec.T,np.array([[1.0]])])
                 P_m_c__c = P_m_c__c.reshape(4,1)
@@ -51,7 +51,7 @@ class ARTagDetector_Node(Node):
                 P_c_m__m = -1 * (R_c2m @ P_m_c__c)
                 P_c_m__m = P_c_m__m[:3]
                 pose_msg = Pose()
-                pose_msg.position = Point(x= P_c_m__m[0][0], y = P_c_m__m[1][0], z = P_c_m__m[2][0] )
+                pose_msg.position = Point(x= P_c_m__m[0][0]*2.6, y = P_c_m__m[1][0]*2.6, z = P_c_m__m[2][0]*2.6 )
                 tr = R_m2c.T[0,0] + R_m2c.T[1,1] + R_m2c.T[2,2]
                 if tr > 0:
                     w = 0.5 * np.sqrt(1+tr)
